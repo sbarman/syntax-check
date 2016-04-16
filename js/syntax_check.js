@@ -1,5 +1,8 @@
 'use strict'
 
+/*
+ * Class to check whether a JavaCode program contains matches certain syntax
+ * criteria */
 var SyntaxCheck = (function SyntaxCheckClosure() {
   function SyntaxCheck(code) {
     var options = {
@@ -7,6 +10,8 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
       sourceType: 'script'
     };
 
+    // Try to parse program, if error is thrown then most likely the code
+    // cannot be parsed
     try {
       var syntax = esprima.parse(code, options);
       this.syntax = syntax;
@@ -19,6 +24,8 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
 
   }
 
+  // Convert syntax name in syntax contraints to nodes in Esprima syntax tree
+  // http://esprima.org/doc/index.html#ast
   var nameToType = {
     // Expressions
     assignment: 'AssignmentExpression',
@@ -94,6 +101,8 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
     // VariableDeclarator: 'VariableDeclarator',
   };
 
+  // Define the children of certain node types. This structure is used to
+  // recurse down the tree.
   var typeToChildren = {
     AssignmentExpression: ['left', 'right'],
     AssignmentPattern: ['right'],
@@ -134,10 +143,14 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
     YieldExpression: ['argument']
   }
 
+  /*
+   * Helper function to check if the syntax tree contains certain node types
+   */
   function containsSyntaxHelper(root, nodeTypes) {
     var seenNode = {};
     var remaining = 0;
 
+    // Convert our syntax constraints to Esprima node types
     for (var i = 0, ii = nodeTypes.length; i < ii; ++i) {
       var nodeType = nodeTypes[i];
       if (nodeType in nameToType) {
@@ -148,11 +161,14 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
       }
     }
 
+    // Depth first search through syntax tree, checking if all required node
+    // types have been visited
     var nodesToVisit = [root];
     while (nodesToVisit.length > 0) {
       var node = nodesToVisit.pop();
       var type = node.type;
 
+      // Check if we can cross off another node type
       if (type in seenNode && !seenNode[type]) {
         seenNode[type] = true;
         remaining--;
@@ -160,6 +176,7 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
           return true;
       }
 
+      // Add children
       if (type in typeToChildren) {
         var childrenFields = typeToChildren[type];
         for (var i = 0, ii = childrenFields.length; i < ii; ++i) {
@@ -180,9 +197,13 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
     return false;
   }
 
+  /*
+   * Helper function to check if the syntax tree excludes certain node types
+   */
   function excludesSyntaxHelper(root, nodeTypes) {
     var nodes = new Set();
 
+    // Convert our syntax constraints to Esprima node types
     for (var i = 0, ii = nodeTypes.length; i < ii; ++i) {
       var nodeType = nodeTypes[i];
       if (nodeType in nameToType) {
@@ -192,11 +213,13 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
       }
     }
 
+    // Depth first search through syntax tree
     var nodesToVisit = [root];
     while (nodesToVisit.length > 0) {
       var node = nodesToVisit.pop();
       var type = node.type;
 
+      // Check if node is one of the excluded types
       if (nodes.has(type)) {
         return false
       }
@@ -222,30 +245,36 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
   }
 
   /*
-   * codeStructure represents the structure of the code and can take the
-   * following forms
+   * Check to see if syntax tree matches a certain structure
    *
-   * string representing a single syntax element
+   * codeStructure represents the structure of the code and can take the
+   * following forms:
+   *
+   * (1) string representing a single syntax element
    * Ex: 'for'
    *
-   * object with a field representing a sequence of syntax elements:
+   * (2) object with a field representing a sequence of syntax elements:
    *   sequence: list of elements, each representing a code structure
    * Ex: {sequence: ['for', 'if']}
    *
-   * object with the fields representing a syntax element and its children
+   * (3) object with the fields representing a syntax element and its children
    * the children are unordered
    *   type: string representing syntax element 
    *   child: the child's code structures
    * Ex: {type: 'for', child: 'if'}
    */
   function matchesStructureHelper(root, codeStructure) {
+    // If root is null, then match cannot happen
     if (!root)
       return false;
 
+    // Code structure with single node is just a case of checking if the tree
+    // hass a certain syntax element
     if (typeof codeStructure == 'string') {
       return containsSyntaxHelper(root, [codeStructure]);
     }
 
+    // Check if codeStructure is valid
     if (!(typeof codeStructure == 'object' && 
           (('sequence' in codeStructure) ||
            ('type' in codeStructure && 'child' in codeStructure)))) {
@@ -254,8 +283,10 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
     }
 
     var rootType = root.type;
+    // Check sequence constraint
     if ('sequence' in codeStructure) {
       var stmts = null;
+      // Only certain node types can match sequence constraints
       if (rootType == 'BlockStatement') {
         stmts = root.body;
       } else if (rootType == 'SwitchCase') {
@@ -270,6 +301,7 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
         var stmtsIdx = 0;
         var seqLength = seq.length;
         var stmtsLength = stmts.length;
+        // Attempt to march sequence constraints to the list of statements
         while (seqIdx < seqLength && stmtsIdx < stmtsLength &&
             (stmtsLength - stmtsIdx >= seqLength - seqIdx)) {
           if (matchesStructureHelper(stmts[stmtsIdx], seq[seqIdx])) {
@@ -282,13 +314,16 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
         if (seqIdx == seqLength)
           return true;
       }
+    // Check children constraints
     } else if ('type' in codeStructure && 'child' in codeStructure) {
       var type = codeStructure.type;
       var childStructure = codeStructure.child;
       var rootType = root.type;
+      // Current root matches the current codeStructure element
       if (rootType == nameToType[type] && rootType in typeToChildren) {
         var childrenFields = typeToChildren[rootType];
 
+        // Try to find matching children
         for (var i = 0, ii = childrenFields.length; i < ii; ++i) {
           var field = childrenFields[i];
           var child = root[field];
@@ -307,6 +342,8 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
       }
     }
 
+    // We did not find a match yet, so lets recurse down the syntax tree to
+    // see if any other parts of the program match constraints
     if (rootType in typeToChildren) {
       var childrenFields = typeToChildren[rootType];
       for (var i = 0, ii = childrenFields.length; i < ii; ++i) {
@@ -326,6 +363,7 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
     return false;
   }
 
+  // Create class methods using helper functions
   SyntaxCheck.prototype = {
     containsSyntax: function _containsSyntax(nodeTypes) {
       if (this.error)

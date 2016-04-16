@@ -1,5 +1,6 @@
 'use strict'
 
+// List of sample tests
 var tests = [
   {
     description: "Uses 'for loop' and 'variable declartion'",
@@ -57,6 +58,7 @@ var tests = [
   }
 ];
 
+// Add sample tests to output div
 var outputDiv = document.getElementById('output');
 var elementIdToTest = {};
 for (var i = 0, ii = tests.length; i < ii; ++i) {
@@ -74,6 +76,9 @@ for (var i = 0, ii = tests.length; i < ii; ++i) {
 
 var editor = document.getElementById('editor');
 
+/*
+ * Function to update results in output div
+ */
 function runTests() {
   var program = editor.value;
   var check = new SyntaxCheck(program);
@@ -91,6 +96,7 @@ function runTests() {
     }
   }
 }
-    
+
+// Add event listener to rerun tests when input changes
 editor.addEventListener('input', runTests, false);
 runTests();
