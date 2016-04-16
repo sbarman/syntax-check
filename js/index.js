@@ -83,17 +83,21 @@ function runTests() {
   var program = editor.value;
   var check = new SyntaxCheck(program);
   for (var elementId in elementIdToTest) {
-    var test = elementIdToTest[elementId];
-    var element = document.getElementById(elementId);
-    try {
-      if (test(check)) {
-        element.innerHTML = 'Pass';
-      } else {
-        element.innerHTML = 'Fail';
-      }
-    } catch (e) {
-      element.innerHTML = 'Cannot parse';
-    }
+    (function() {
+      var test = elementIdToTest[elementId];
+      var element = document.getElementById(elementId);
+      setTimeout(function() {
+        try {
+          if (test(check)) {
+            element.innerHTML = 'Pass';
+          } else {
+            element.innerHTML = 'Fail';
+          }
+        } catch (e) {
+          element.innerHTML = 'Cannot parse';
+        }
+      }, 0);
+    })()
   }
 }
 
