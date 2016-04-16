@@ -8,28 +8,19 @@
 
 <body>
   <!-- Title and subtitle -->
-  <div class="row">
-     <h3 class="subheader"><strong>Parser</strong> produces the (beautiful) syntax tree</h3>
+  <div>
+     <h3 class="subheader">Check the JavaScript code structure</h3>
   </div>
 
   <!-- Main content -->
-  <div class="row">
-<pre id="editor" spellcheck="false" style="height: 350px">
-// Life, Universe, and Everything
-var answer = 6 * 7;
-for (var i = 0; i < 3; ++i) {
-  if (i == 0) {
-    console.log("woo");
-  }
-}
-if (answer == 5) {
-  console.log('blah');
-}
-</pre>
-    <div id="info" class="alert-box secondary">Ready.</div>
+  <div>
+<textarea id="editor" spellcheck="false" rows=20 cols=80>
+function helloWorld() {
+  console.log('Hello world!');
+}</textarea>
   </div>
 
-  <textarea id="tokens" rows="30" readonly></textarea>
+  <div id="output"></div>
 
   <script src="js/esprima.js"></script>
   <script src="js/syntax_check.js"></script>

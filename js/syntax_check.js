@@ -7,10 +7,16 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
       sourceType: 'script'
     };
 
-    var syntax = esprima.parse(code, options);
+    try {
+      var syntax = esprima.parse(code, options);
+      this.syntax = syntax;
+      this.tokens = syntax.tokens;
+      this.error = false;
+    } catch (e) {
+      this.error = true;
+      console.error(e);
+    }
 
-    this.syntax = syntax;
-    this.tokens = syntax.tokens;
   }
 
   var nameToType = {
@@ -191,7 +197,7 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
       var node = nodesToVisit.pop();
       var type = node.type;
 
-      if (type in nodes) {
+      if (nodes.has(type)) {
         return false
       }
 
@@ -322,12 +328,18 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
 
   SyntaxCheck.prototype = {
     containsSyntax: function _containsSyntax(nodeTypes) {
+      if (this.error)
+        throw "Error parsing";
       return containsSyntaxHelper(this.syntax, nodeTypes);
     },
     excludesSyntax: function _excludesSyntax(nodeTypes) {
+      if (this.error)
+        throw "Error parsing";
       return excludesSyntaxHelper(this.syntax, nodeTypes);
     },
     matchesStructure: function _matchesStructure(nodeStructure) {
+      if (this.error)
+        throw "Error parsing";
       return matchesStructureHelper(this.syntax, nodeStructure);
     }
   };
