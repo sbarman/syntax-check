@@ -379,6 +379,16 @@ var SyntaxCheck = (function SyntaxCheckClosure() {
       if (this.error)
         throw "Error parsing";
       return matchesStructureHelper(this.syntax, nodeStructure);
+    },
+    check: function _check(constraint) {
+      var type = constraint.type;
+      var arg = constraint.arg;
+
+      if (type in this) {
+        return this[type].call(this, arg)
+      } else {
+        throw 'Unknown constraint';
+      }
     }
   };
 

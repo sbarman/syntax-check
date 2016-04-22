@@ -4,56 +4,65 @@
 var tests = [
   {
     description: "Uses 'for loop' and 'variable declartion'",
-    test: function(check) {
-      return check.containsSyntax(['for', 'var']);
+    test: {
+      type: 'containsSyntax',
+      arg: ['for', 'var']
     }
   },
   {
     description: "Uses 'try statement' and 'catch clause'",
-    test: function(check) {
-      return check.containsSyntax(['try', 'catch']);
+    test: {
+      type: 'containsSyntax',
+      arg: ['try', 'catch']
     }
   },
   {
     description: "Uses 'throw statement'",
-    test: function(check) {
-      return check.containsSyntax(['throw']);
+    test: {
+      type: 'containsSyntax',
+      arg: ['throw']
     }
   },
   {
     description: "Does not use 'break statement'",
-    test: function(check) {
-      return check.excludesSyntax(['break']);
+    test: {
+      type: 'excludesSyntax',
+      arg: ['break']
     }
   },
   {
     description: "Does not use 'while loop' or an 'if statement'",
-    test: function(check) {
-      return check.excludesSyntax(['while', 'if']);
+    test: {
+      type: 'excludesSyntax',
+      arg: ['while', 'if']
     }
   },
   {
     description: "Does not use 'switch statement'",
-    test: function(check) {
-      return check.excludesSyntax(['switch']);
+    test: { 
+      type: 'excludesSyntax',
+      arg: ['switch']
     }
   },
   {
     description: "Contains two 'for loops' in sequence'",
-    test: function(check) {
-      return check.matchesStructure({sequence: ['for', 'for']});
+    test: {
+      type: 'matchesStructure',
+      arg: {sequence: ['for', 'for']}
     }
   },
   {
     description: "Contains 'if statement' inside a 'for loop'",
-    test: function(check) {
-      return check.matchesStructure({type:'for', child: 'if'});
+    test: {
+      type: 'matchesStructure',
+      arg: {type:'for', child: 'if'}
     }
   },
   {
     description: "Contains 'break statement' inside an 'if statement' inside a 'for loop'",
-    test: function(check) {
-      return check.matchesStructure({type:'for', child: {type: 'if', child: 'break'}});
+    test: {
+      type: 'matchesStructure',
+      arg: {type:'for', child: {type: 'if', child: 'break'}}
     }
   }
 ];
@@ -79,25 +88,43 @@ var editor = document.getElementById('editor');
 /*
  * Function to update results in output div
  */
-function runTests() {
-  var program = editor.value;
-  var check = new SyntaxCheck(program);
-  for (var elementId in elementIdToTest) {
-    (function() {
-      var test = elementIdToTest[elementId];
+if (window.Worker) {
+  var syntaxWorker = new Worker('js/worker.js');
+
+  var runTests = function() {
+    var program = editor.value;
+    syntaxWorker.postMessage([program, elementIdToTest]);
+  }
+
+  syntaxWorker.onmessage = function(e) {
+    var elementIdToResult = e.data;
+    for (var elementId in elementIdToResult) {
+      var result = elementIdToResult[elementId];
       var element = document.getElementById(elementId);
-      setTimeout(function() {
-        try {
-          if (test(check)) {
-            element.innerHTML = 'Pass';
-          } else {
-            element.innerHTML = 'Fail';
+      element.innerHTML = result;
+    }
+  }
+} else {
+  var runTests = function() {
+    var program = editor.value;
+    var check = new SyntaxCheck(program);
+    for (var elementId in elementIdToTest) {
+      (function() {
+        var test = elementIdToTest[elementId];
+        var element = document.getElementById(elementId);
+        setTimeout(function() {
+          try {
+            if (check.check(test)) {
+              element.innerHTML = 'Pass';
+            } else {
+              element.innerHTML = 'Fail';
+            }
+          } catch (e) {
+            element.innerHTML = 'Cannot parse';
           }
-        } catch (e) {
-          element.innerHTML = 'Cannot parse';
-        }
-      }, 0);
-    })()
+        }, 0);
+      })()
+    }
   }
 }
 
